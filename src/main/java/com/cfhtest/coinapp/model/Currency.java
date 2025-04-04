@@ -1,23 +1,28 @@
 package com.cfhtest.coinapp.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import lombok.Data;
 
-@Entity
 @Data
-public class CurrencyInfo {
+@Entity
+public class Currency {
 
     @Id
-    private Integer coinSn;
+    @GeneratedValue
+    private Integer sn;
+
     private String code;
+
     private String symbol;
+
     private String rate;
+
     private String description;
     
-    @JsonProperty("rate_float")
+    @Column(name = "rate_float")
     private double rateFloat;
 
 }
