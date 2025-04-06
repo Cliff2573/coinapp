@@ -1,3 +1,4 @@
+# Spring Boot application configuration file
 spring:
   datasource:
     driver-class-name: org.h2.Driver
@@ -13,3 +14,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
+
+# Logging configuration
+logging:
+  file:
+    name: logs/app.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%X{traceId}] %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%X{traceId}] %msg%n"
