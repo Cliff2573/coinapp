@@ -1,8 +1,10 @@
 package com.cfhtest.coinapp.service;
 
 import java.util.Date;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class CurrencyService {
     
+    @Autowired
+    private MessageSource messageSource;
+
     @Autowired
     private CurrencyRepository currencyRepository;
 
@@ -60,7 +65,7 @@ public class CurrencyService {
      */
     public CurrencyModel getByCode(String code) {
         CurrencyView currencyView = currencyViewRepository.findById(code)
-                .orElseThrow(() -> new BusinessException("找不到指定的貨幣資料: " + code));
+                .orElseThrow(() -> new BusinessException(messageSource.getMessage("error.notfound", new Object[] { code }, Locale.getDefault())));
         return toModel(currencyView);
     }
 
@@ -106,7 +111,7 @@ public class CurrencyService {
     @Transactional
     public void deleteByCode(String code) {
         if (!currencyRepository.existsById(code)) {
-            throw new BusinessException("找不到指定的貨幣資料，無法刪除: " + code);
+            throw new BusinessException(messageSource.getMessage("error.notfound.delete", new Object[] { code }, Locale.getDefault()));
         }
         currencyRepository.deleteById(code);
     }

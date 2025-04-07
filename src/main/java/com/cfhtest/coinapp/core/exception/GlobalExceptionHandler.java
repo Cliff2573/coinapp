@@ -13,19 +13,23 @@ import com.cfhtest.coinapp.core.response.ApiResponse;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
+        log.error("BusinessException occurred: {}", ex.getMessage());
         return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex) {
+        log.error("Unexpected error occurred: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("系統錯誤，請稍後再試"));
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

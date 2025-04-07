@@ -52,7 +52,7 @@ public class ServiceExceptionAspect {
             log.error("[Service Error] traceId={} class={} method={} args={} duration={}ms",
                     MDC.get("traceId"), className, methodName, Arrays.toString(args), duration, e);
 
-            throw new BusinessException("服務執行失敗，請稍後再試");
+            throw new BusinessException(e.getMessage());
         }
     }
 }
