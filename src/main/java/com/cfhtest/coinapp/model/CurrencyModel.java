@@ -1,5 +1,7 @@
 package com.cfhtest.coinapp.model;
 
+import java.util.Date;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,5 +28,8 @@ public class CurrencyModel {
 
     @Schema(description = "貨幣中文名稱", example = "新台幣")
     private String label;
+
+    @Schema(description = "更新時間")
+    private Date updateDttm;
 
 }

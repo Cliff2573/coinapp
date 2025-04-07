@@ -19,11 +19,14 @@ public class CoinDeskModel {
     @Data
     public static class CurrencyInfo {
         
-        @Schema(description = "貨幣代碼，例如 USD、EUR")
+        @Schema(description = "貨幣代碼")
         private String code;
         
         @Schema(description = "貨幣中文名稱")
         private String label;
+
+        @Schema(description = "匯率（字串格式）")
+        private String rate;
 
         @Schema(description = "貨幣匯率")
         @JsonProperty("rate_float")

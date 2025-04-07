@@ -1,5 +1,7 @@
 package com.cfhtest.coinapp.service;
 
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -9,10 +11,12 @@ import org.springframework.stereotype.Service;
 
 import com.cfhtest.coinapp.core.exception.BusinessException;
 import com.cfhtest.coinapp.entity.Currency;
+import com.cfhtest.coinapp.entity.CurrencyHist;
 import com.cfhtest.coinapp.entity.CurrencyLabel;
 import com.cfhtest.coinapp.entity.CurrencyView;
 import com.cfhtest.coinapp.form.CurrencyForm;
 import com.cfhtest.coinapp.model.CurrencyModel;
+import com.cfhtest.coinapp.service.dao.CurrencyHistRepository;
 import com.cfhtest.coinapp.service.dao.CurrencyLabelRepository;
 import com.cfhtest.coinapp.service.dao.CurrencyRepository;
 import com.cfhtest.coinapp.service.dao.CurrencyViewRepository;
@@ -29,6 +33,9 @@ public class CurrencyService {
 
     @Autowired
     private CurrencyLabelRepository currencyLabelRepository;
+
+    @Autowired
+    private CurrencyHistRepository currencyHistRepository;
 
     @Autowired
     private CurrencyViewRepository currencyViewRepository;
@@ -64,7 +71,6 @@ public class CurrencyService {
 
         // 儲存貨幣資料
         Currency currency = new Currency();
-
         currency.setCode(currencyForm.getCode());
         currency.setSymbol(currencyForm.getSymbol());
         currency.setRate(currencyForm.getRate());
@@ -80,8 +86,16 @@ public class CurrencyService {
 
         CurrencyLabel savedCurrencyLabel = currencyLabelRepository.save(currencyLabel);
 
+        // 同步更新到 CurrencyHist
+        CurrencyHist currencyHist = new CurrencyHist();
+        currencyHist.setCode(savedCurrency.getCode());
+        currencyHist.setRateFloat(savedCurrency.getRateFloat());
+        currencyHist.setUpdateDttm(new Date());
+
+        CurrencyHist savedCurrencyHist = currencyHistRepository.save(currencyHist);
+
         // 組合回傳
-        CurrencyModel currencyModel = toModel(savedCurrency, savedCurrencyLabel);
+        CurrencyModel currencyModel = toModel(savedCurrency, savedCurrencyLabel, savedCurrencyHist);
 
         return currencyModel;
     }
@@ -116,7 +130,7 @@ public class CurrencyService {
     /**
      * 將 Currency + CurrencyLabel 轉換為 CurrencyModel
      */
-    private CurrencyModel toModel(Currency currency, CurrencyLabel currencyLabel) {
+    private CurrencyModel toModel(Currency currency, CurrencyLabel currencyLabel, CurrencyHist currencyHist) {
 
         CurrencyModel currencyModel = new CurrencyModel();
         currencyModel.setCode(currency.getCode());
@@ -124,8 +138,8 @@ public class CurrencyService {
         currencyModel.setRate(currency.getRate());
         currencyModel.setDescription(currency.getDescription());
         currencyModel.setRateFloat(currency.getRateFloat());
-
         currencyModel.setLabel(currencyLabel.getLabel());
+        currencyModel.setUpdateDttm(currencyHist.getUpdateDttm());
 
         return currencyModel;
     }

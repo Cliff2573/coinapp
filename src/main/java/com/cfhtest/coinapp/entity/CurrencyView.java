@@ -3,16 +3,13 @@ package com.cfhtest.coinapp.entity;
 import org.hibernate.annotations.Immutable;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.Data;
 
 @Data
 @Entity
 @Immutable
-@Table(name = "currency_view")
 @Schema(description = "貨幣資訊（包含中文名稱）的 view")
 public class CurrencyView {
     
@@ -29,7 +26,6 @@ public class CurrencyView {
     @Schema(description = "貨幣說明")
     private String description;
 
-    @Column(name = "rate_float")
     @Schema(description = "匯率（數值格式）")
     private double rateFloat;
 

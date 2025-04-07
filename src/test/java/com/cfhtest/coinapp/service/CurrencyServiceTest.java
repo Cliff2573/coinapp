@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -20,10 +21,12 @@ import org.springframework.data.domain.Sort;
 
 import com.cfhtest.coinapp.core.exception.BusinessException;
 import com.cfhtest.coinapp.entity.Currency;
+import com.cfhtest.coinapp.entity.CurrencyHist;
 import com.cfhtest.coinapp.entity.CurrencyLabel;
 import com.cfhtest.coinapp.entity.CurrencyView;
 import com.cfhtest.coinapp.form.CurrencyForm;
 import com.cfhtest.coinapp.model.CurrencyModel;
+import com.cfhtest.coinapp.service.dao.CurrencyHistRepository;
 import com.cfhtest.coinapp.service.dao.CurrencyLabelRepository;
 import com.cfhtest.coinapp.service.dao.CurrencyRepository;
 import com.cfhtest.coinapp.service.dao.CurrencyViewRepository;
@@ -53,6 +56,9 @@ class CurrencyServiceTest {
 
     @Mock
     private CurrencyViewRepository currencyViewRepository;  // 模擬 CurrencyViewRepository
+
+    @Mock
+    private CurrencyHistRepository currencyHistRepository;  // 模擬 CurrencyHistRepository
 
     @InjectMocks
     private CurrencyService currencyService;    // 被測試的 CurrencyService 服務
@@ -199,16 +205,23 @@ class CurrencyServiceTest {
         mockCurrency.setSymbol("$");
         mockCurrency.setRate("1.0");
         mockCurrency.setDescription("US Dollar");
-        mockCurrency.setRateFloat(1.0f);
+        mockCurrency.setRateFloat(1.0);
 
         // 模擬儲存的 CurrencyLabel 實體
         CurrencyLabel mockCurrencyLabel = new CurrencyLabel();
         mockCurrencyLabel.setCode("USD");
         mockCurrencyLabel.setLabel("美元");
 
+        // 模擬儲存的 CurrencyHist 實體
+        CurrencyHist mockCurrencyHist = new CurrencyHist();
+        mockCurrencyHist.setCode("USD");
+        mockCurrencyHist.setRateFloat(1.0);
+        mockCurrencyHist.setUpdateDttm(new Date(1672531200000L));
+
         // 模擬 repository 的行為
         when(currencyRepository.save(any(Currency.class))).thenReturn(mockCurrency);
         when(currencyLabelRepository.save(any(CurrencyLabel.class))).thenReturn(mockCurrencyLabel);
+        when(currencyHistRepository.save(any(CurrencyHist.class))).thenReturn(mockCurrencyHist);
 
         // 呼叫要測試的 method
         CurrencyModel result = currencyService.save(currencyForm);
@@ -221,10 +234,12 @@ class CurrencyServiceTest {
         assertEquals("US Dollar", result.getDescription());
         assertEquals(1.0f, result.getRateFloat());
         assertEquals("美元", result.getLabel());
-
+        assertNotNull(result.getUpdateDttm());
+        
         // 驗證 repository 的互動
         verify(currencyRepository, times(1)).save(any(Currency.class));
         verify(currencyLabelRepository, times(1)).save(any(CurrencyLabel.class));
+        verify(currencyHistRepository, times(1)).save(any(CurrencyHist.class));
     }
 
     /**

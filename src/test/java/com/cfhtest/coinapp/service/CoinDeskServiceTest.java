@@ -4,12 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,13 +24,35 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cfhtest.coinapp.core.exception.BusinessException;
+import com.cfhtest.coinapp.entity.Currency;
+import com.cfhtest.coinapp.entity.CurrencyHist;
+import com.cfhtest.coinapp.form.CurrencyForm;
 import com.cfhtest.coinapp.model.CoinDeskModel;
+import com.cfhtest.coinapp.model.CoinDeskModel.CurrencyInfo;
+import com.cfhtest.coinapp.service.dao.CurrencyHistRepository;
+import com.cfhtest.coinapp.service.dao.CurrencyRepository;
 
+/**
+ * 測試 CoinDeskService 類別
+ * 1. 測試 parseCoinDeskData 方法（成功）
+ * 2. 測試 parseCoinDeskData 方法（解析失敗）
+ * 3. 測試 updateCurrencyRates 方法（成功）
+ * 4. 測試 updateCurrencyRates 方法（更新失敗）
+ */
 @ExtendWith(MockitoExtension.class)
 public class CoinDeskServiceTest {
 
     @Mock
     private CurrencyLabelService currencyLabelService;
+
+    @Mock
+    private CurrencyRepository currencyRepository;
+
+    @Mock
+    private CurrencyHistRepository currencyHistRepository;
+
+    @Mock
+    private CurrencyService currencyService;
 
     @Spy
     @InjectMocks
@@ -123,4 +150,78 @@ public class CoinDeskServiceTest {
         verify(coinDeskService, times(1)).getCurrentPrice();
     }
     
+    @Test
+    void testUpdateCurrencyRates_Success() {
+        // 模擬 CoinDeskModel 資料
+        CoinDeskModel mockModel = new CoinDeskModel();
+        mockModel.setUpdateTime("2023/01/01 00:00:00");
+
+        CurrencyInfo usdInfo = new CurrencyInfo();
+        usdInfo.setCode("USD");
+        usdInfo.setRate("1.0");
+        usdInfo.setRateFloat(1.0);
+        usdInfo.setLabel("美元");
+
+        CurrencyInfo eurInfo = new CurrencyInfo();
+        eurInfo.setCode("EUR");
+        eurInfo.setRate("0.85");
+        eurInfo.setRateFloat(0.85);
+        eurInfo.setLabel("歐元");
+
+        mockModel.setCurrencies(Arrays.asList(usdInfo, eurInfo));
+
+        // 模擬 parseCoinDeskData() 的行為
+        doReturn(mockModel).when(coinDeskService).parseCoinDeskData();
+
+        // 模擬 CurrencyRepository 的行為
+        Currency existingCurrency = new Currency();
+        existingCurrency.setCode("USD");
+        existingCurrency.setRate("0.9");
+        existingCurrency.setRateFloat(0.9);
+        when(currencyRepository.findById("USD")).thenReturn(Optional.of(existingCurrency));
+        when(currencyRepository.findById("EUR")).thenReturn(Optional.empty());
+
+        // 呼叫要測試的方法
+        coinDeskService.updateCurrencyRates();
+
+        // 驗證更新現有的貨幣資料
+        verify(currencyRepository, times(1)).save(argThat(currency -> 
+            "USD".equals(currency.getCode()) &&
+            "1.0".equals(currency.getRate()) &&
+            currency.getRateFloat() == 1.0
+        ));
+
+        // 驗證新增新的貨幣資料
+        verify(currencyService, times(1)).save(argThat(form -> 
+            "EUR".equals(form.getCode()) &&
+            "0.85".equals(form.getRate()) &&
+            form.getRateFloat() == 0.85 &&
+            "歐元".equals(form.getLabel())
+        ));
+
+        // 驗證新增匯率歷史紀錄
+        verify(currencyHistRepository, times(2)).save(argThat(hist -> 
+            ("USD".equals(hist.getCode()) && hist.getRateFloat() == 1.0) ||
+            ("EUR".equals(hist.getCode()) && hist.getRateFloat() == 0.85)
+        ));
+    }
+
+    @Test
+    void testUpdateCurrencyRates_Failure() {
+        // 模擬 parseCoinDeskData() 拋出例外
+        doThrow(new BusinessException("解析 CoinDesk 資料失敗")).when(coinDeskService).parseCoinDeskData();
+
+        // 呼叫要測試的方法並驗證例外
+        BusinessException exception = assertThrows(BusinessException.class, () -> coinDeskService.updateCurrencyRates());
+        assertEquals("解析 CoinDesk 資料失敗", exception.getMessage());
+
+        // 驗證沒有進行任何儲存操作
+        verify(currencyRepository, times(0)).save(any(Currency.class));
+        verify(currencyService, times(0)).save(any(CurrencyForm.class));
+        verify(currencyHistRepository, times(0)).save(any(CurrencyHist.class));
+
+        // 確保 parseCoinDeskData() 被呼叫一次
+        verify(coinDeskService, times(1)).parseCoinDeskData();
+    }
+
 }

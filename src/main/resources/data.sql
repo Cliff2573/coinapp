@@ -7,3 +7,8 @@ INSERT INTO `currency_l` (`code`, `label`) VALUES
 ('USD', '美金'),
 ('GBP', '英鎊'),
 ('EUR', '歐元');
+
+INSERT INTO `currency_hist` (`code`, `rate_float`, `update_dttm`) VALUES
+('USD', 23342.0112, '2022-08-01 00:00:00'),
+('GBP', 19504.3978, '2022-08-01 00:00:00'),
+('EUR', 22738.5269, '2022-08-01 00:00:00');
