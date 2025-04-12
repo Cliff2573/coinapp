@@ -3,9 +3,9 @@ package com.cfhtest.coinapp.service;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +19,10 @@ import com.cfhtest.coinapp.core.exception.BusinessException;
 import com.cfhtest.coinapp.entity.Currency;
 import com.cfhtest.coinapp.entity.CurrencyHist;
 import com.cfhtest.coinapp.form.CurrencyForm;
+import com.cfhtest.coinapp.model.CoinDeskApiResponse;
 import com.cfhtest.coinapp.model.CoinDeskModel;
 import com.cfhtest.coinapp.service.dao.CurrencyHistRepository;
 import com.cfhtest.coinapp.service.dao.CurrencyRepository;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
@@ -115,29 +115,26 @@ public class CoinDeskService {
     public CoinDeskModel parseCoinDeskData() {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(getCurrentPrice());
+            CoinDeskApiResponse coinDeskApiResponse = mapper.readValue(getCurrentPrice(), CoinDeskApiResponse.class);
 
-            // log API response
-            log.info("CoinDesk API response: {}", root.toString());
+            // log 原始 JSON
+            log.info("CoinDesk API response: {}", coinDeskApiResponse);
 
-            // 處理時間格式
-            String updatedISO = root.path("time").path("updatedISO").asText();
-            ZonedDateTime updatedTime = ZonedDateTime.parse(updatedISO);
-            String formattedTime = updatedTime.format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"));
+            // 格式化時間
+            String formattedTime = ZonedDateTime
+                .parse(coinDeskApiResponse.getTime().getUpdatedISO())
+                .format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"));
 
-            // 處理幣別資訊
-            List<CoinDeskModel.CurrencyInfo> currencyList = new ArrayList<>();
-            JsonNode bpi = root.path("bpi");
-
-            bpi.fieldNames().forEachRemaining(code -> {
-                JsonNode node = bpi.get(code);
-                CoinDeskModel.CurrencyInfo info = new CoinDeskModel.CurrencyInfo();
-                info.setCode(code);
-                info.setLabel(currencyLabelService.getCurrencyLabel(code));
-                info.setRate(node.path("rate").asText());
-                info.setRateFloat(node.path("rate_float").asDouble());
-                currencyList.add(info);
-            });
+            // 幣別處理
+            List<CoinDeskModel.CurrencyInfo> currencyList = coinDeskApiResponse.getBpi().values().stream()
+                .map(apiCurrency -> {
+                    CoinDeskModel.CurrencyInfo info = new CoinDeskModel.CurrencyInfo();
+                    info.setCode(apiCurrency.getCode());
+                    info.setLabel(currencyLabelService.getCurrencyLabel(apiCurrency.getCode()));
+                    info.setRate(apiCurrency.getRate());
+                    info.setRateFloat(apiCurrency.getRate_float());
+                    return info;
+                }).collect(Collectors.toList());
 
             // 組合 CoinDeskModel
             CoinDeskModel response = new CoinDeskModel();
