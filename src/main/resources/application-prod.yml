@@ -6,8 +6,9 @@ spring:
     password: password
   sql:
     init:
-      mode: always
+      mode: never
       encoding: UTF-8
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
