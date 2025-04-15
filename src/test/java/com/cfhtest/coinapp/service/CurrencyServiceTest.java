@@ -8,12 +8,14 @@ import static org.mockito.Mockito.*;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -47,6 +49,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ExtendWith(MockitoExtension.class)
 class CurrencyServiceTest {
+
+    @Mock
+    private MessageSource messageSource;  // 模擬 MessageSource
 
     @Mock
     private CurrencyRepository currencyRepository;  // 模擬 CurrencyRepository
@@ -178,7 +183,7 @@ class CurrencyServiceTest {
 
         // 呼叫要測試的 method 並驗證例外
         BusinessException exception = assertThrows(BusinessException.class, () -> currencyService.getByCode(code));
-        assertEquals("找不到指定的貨幣資料: " + code, exception.getMessage());
+        assertEquals(messageSource.getMessage("error.notfound", new Object[] { code }, Locale.getDefault()), exception.getMessage());
 
         verify(currencyViewRepository, times(1)).findById(code);
     }
@@ -299,7 +304,7 @@ class CurrencyServiceTest {
 
         // 呼叫要測試的 method 並驗證例外
         BusinessException exception = assertThrows(BusinessException.class, () -> currencyService.deleteByCode(code));
-        assertEquals("找不到指定的貨幣資料，無法刪除: " + code, exception.getMessage());
+        assertEquals(messageSource.getMessage("error.notfound.delete", new Object[] { code }, Locale.getDefault()), exception.getMessage());
 
         // 驗證 repository 的互動
         verify(currencyRepository, times(1)).existsById(code);
