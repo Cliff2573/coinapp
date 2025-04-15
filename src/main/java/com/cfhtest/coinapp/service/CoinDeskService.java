@@ -128,6 +128,9 @@ public class CoinDeskService {
             // 幣別處理
             List<CoinDeskModel.CurrencyInfo> currencyList = coinDeskApiResponse.getBpi().values().stream()
                 .map(apiCurrency -> {
+
+                    log.info("幣別: {}", apiCurrency.getCode());
+
                     CoinDeskModel.CurrencyInfo info = new CoinDeskModel.CurrencyInfo();
                     info.setCode(apiCurrency.getCode());
                     info.setLabel(currencyLabelService.getCurrencyLabel(apiCurrency.getCode()));

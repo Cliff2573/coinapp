@@ -1,13 +1,9 @@
 package com.cfhtest.coinapp.core.config;
 
-import java.util.Arrays;
-
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 import com.cfhtest.coinapp.core.exception.BusinessException;
@@ -20,39 +16,41 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class ServiceExceptionAspect {
 
+    /**
+     * 攔截所有 Service 的 public 方法
+     */
     @Pointcut("execution(* com.cfhtest.coinapp.service..*(..))")
     public void serviceMethods() {}
 
+    /**
+     * 攔截 Service 的 public 方法，並記錄請求和回應的資訊
+     * @param joinPoint 攔截點
+     * @return 方法執行結果
+     * @throws Throwable 可能拋出的例外
+     */
     @Around("serviceMethods()")
     public Object handleServiceExceptions(ProceedingJoinPoint joinPoint) throws Throwable {
-        long startTime = System.currentTimeMillis();
 
-        Signature signature = joinPoint.getSignature();
-        String className = signature.getDeclaringTypeName();
-        String methodName = signature.getName();
-        Object[] args = joinPoint.getArgs();
+        String className = joinPoint.getSignature().getDeclaringTypeName();
+        String methodName = joinPoint.getSignature().getName();
+        long start = System.currentTimeMillis();
 
+        // method 執行成功
         try {
             Object result = joinPoint.proceed();
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = System.currentTimeMillis() - start;
 
-            log.info("[Service Success] traceId={} class={} method={} args={} duration={}ms",
-                    MDC.get("traceId"), className, methodName, Arrays.toString(args), duration);
-
+            log.info("[Service] 成功 class={} method={} duration={}ms", className, methodName, duration);
             return result;
 
-        } catch (IllegalArgumentException e) {
-            log.warn("[Service InvalidArg] traceId={} class={} method={} args={} error={}",
-                    MDC.get("traceId"), className, methodName, Arrays.toString(args), e.getMessage());
-            throw e;
+        } 
+        // method 執行失敗
+        catch (Exception e) {
+            long duration = System.currentTimeMillis() - start;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
+            log.error("[Service] 錯誤 class={} method={} duration={}ms error={}", className, methodName, duration, e.getMessage(), e);
 
-            log.error("[Service Error] traceId={} class={} method={} args={} duration={}ms",
-                    MDC.get("traceId"), className, methodName, Arrays.toString(args), duration, e);
-
-            throw new BusinessException(e.getMessage());
+            throw (e instanceof BusinessException) ? e : new BusinessException(e.getMessage());
         }
     }
 }
